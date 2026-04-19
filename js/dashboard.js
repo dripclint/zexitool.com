@@ -38,15 +38,6 @@ const STATE = {
     ordersHistoryHtml: ''
 };
 
-// --- PRELOAD QR IMAGES FOR INSTANT DISPLAY ---
-const preloadedImages = {
-    upi: new Image(),
-    binance: new Image()
-};
-preloadedImages.upi.src = "https://i.ibb.co/DHsfsL3d/qr.png";
-preloadedImages.binance.src = "https://i.ibb.co/5gVVk8jq/qr.png";
-// ---------------------------------------------
-
 // Helper function to handle local timestamp sorting (including pending nulls)
 const sortByDateDesc = (a, b) => {
     const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : Date.now();
@@ -233,7 +224,8 @@ const DataLayer = {
         const amount = Number(amountEl.value);
         const utr = utrEl.value.trim();
 
-        if (!amount || amount < 100) return UI.showToast('Minimum deposit is ₹100', 'danger');
+        if (!amount || amount < 1) return UI.showToast('Minimum deposit is ₹1', 'danger');
+        if (amount > 10000) return UI.showToast('Maximum deposit is ₹10000', 'danger');
         
         if (STATE.currentDepositTab === 'upi' && utr.length !== 12) {
             return UI.showToast('UTR must be exactly 12 characters', 'danger');

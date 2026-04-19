@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&display=swap');
+
+/* Lightweight ambient background (No repaints) */
+.ambient-bg {
+    background-image: radial-gradient(circle at 50% -20%, #1a1a1a 0%, transparent 60%);
+}
+
+/* GPU Accelerated transforms */
+.glass-panel {
+    will-change: transform;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hover-scale-light {
+    transition: transform 0.2s ease;
+    will-change: transform;
+}
+.hover-scale-light:hover {
+    transform: scale(1.02) translateZ(0);
+}
+
+.animate-pulse-fast {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Skew button optimized */
+.btn-skew {
+    transform: skewX(-6deg) translateZ(0); /* translateZ forces hardware acceleration */
+}
+.btn-skew > div {
+    transform: skewX(6deg) translateZ(0);
+}
+.btn-skew:active:not(:disabled) {
+    transform: skewX(-6deg) scale(0.97) translateZ(0);
+}
+
+/* Input Styles - Pseudo-elements for glow to avoid box-shadow layout thrashing */
+.gamer-input {
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    will-change: border-color;
+}
+.gamer-input:focus {
+    border-color: #ffb703;
+    background-color: #111;
+}
+.gamer-input:focus + svg {
+    color: #ffb703;
+}
+
+/* Smooth Tab Switching - No Reflows */
+.tab-btn {
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.tab-btn.active {
+    background-color: #ffb703;
+    color: #000;
+}
+.tab-btn:not(.active):hover {
+    color: #fff;
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* Expandable confirm wrapper using CSS Grid.
+  This allows smooth height transition without JS calculation loops.
+*/
+.expandable-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+    will-change: grid-template-rows, opacity;
+}
+.expandable-wrapper[data-state="expanded"] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+.expandable-wrapper > div {
+    overflow: hidden;
+}
+
+/* Toast Animations - Compositor Only (Opacity + Transform) */
+.toast-enter { 
+    animation: slideInDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
+    will-change: transform, opacity;
+}
+.toast-exit { 
+    animation: slideOutUp 0.2s ease-in forwards; 
+    pointer-events: none;
+}
+
+@keyframes slideInDown {
+    0% { transform: translate3d(0, -20px, 0); opacity: 0; }
+    100% { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+@keyframes slideOutUp {
+    0% { transform: translate3d(0, 0, 0); opacity: 1; }
+    100% { transform: translate3d(0, -10px, 0); opacity: 0; }
+}
+
+/* High-perf JS Ripple */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple-anim 0.4s ease-out forwards;
+    background-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+@keyframes ripple-anim {
+    to { transform: scale(4); opacity: 0; }
+}

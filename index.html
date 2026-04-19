@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="ZEXI TOOL - High Performance Auth">
+    <title>ZEXI TOOL - Secure Access</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com">
+    
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Rajdhani', 'sans-serif'] },
+                    colors: { 
+                        'game-yellow': '#ffb703', 
+                        'game-yellow-hover': '#ff9e00',
+                        'game-red': '#e63946',
+                        'panel-dark': '#0a0a0a',
+                        'panel-border': '#1f1f1f'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 text-white antialiased bg-panel-dark selection:bg-game-yellow selection:text-black ambient-bg">
+
+    <div id="app-loader" class="fixed inset-0 z-[100] bg-panel-dark flex flex-col items-center justify-center transition-opacity duration-300 will-change-opacity">
+        <div class="w-10 h-10 border-4 border-panel-border border-t-game-yellow rounded-full animate-spin mb-4"></div>
+        <p class="text-game-yellow font-bold tracking-widest uppercase text-sm">Connecting...</p>
+    </div>
+
+    <div id="toast-container" class="fixed top-8 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-80 items-center pointer-events-none"></div>
+
+    <main class="w-full max-w-md relative z-10 glass-panel">
+        <div class="bg-[#0f0f0f] border border-panel-border rounded-xl p-8 relative overflow-hidden shadow-2xl">
+            
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-game-red via-game-yellow to-game-red"></div>
+
+            <div class="text-center mb-8">
+                <h1 class="text-5xl font-extrabold tracking-tighter text-white mb-1 drop-shadow-sm cursor-default hover-scale-light">
+                    ZEXI<span class="text-game-yellow">TOOL</span>
+                </h1>
+                <p class="text-neutral-500 font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2"> 
+                    <span class="w-1.5 h-1.5 rounded-full bg-game-red animate-pulse-fast"></span> 
+                    Secure Interface
+                </p>
+            </div>
+
+            <div id="tab-container" class="flex gap-2 mb-8 bg-black/60 p-1.5 rounded-lg border border-white/5 relative z-20">
+                <button data-action="tab" data-target="login" class="tab-btn active flex-1 py-2 font-bold tracking-wider text-sm rounded relative overflow-hidden">
+                    <span class="relative z-10 pointer-events-none">LOGIN</span>
+                </button>
+                <button data-action="tab" data-target="register" class="tab-btn flex-1 py-2 font-bold tracking-wider text-sm rounded relative overflow-hidden text-neutral-500">
+                    <span class="relative z-10 pointer-events-none">REGISTER</span>
+                </button>
+            </div>
+
+            <form id="auth-form" class="space-y-4" novalidate>
+                <div class="input-group">
+                    <label for="email" class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1 ml-1">Player Email</label>
+                    <div class="relative">
+                        <input type="email" id="email" class="gamer-input w-full bg-[#161616] border border-panel-border rounded-lg p-3 pl-10 text-white focus:outline-none" placeholder="commander@zexi.com" required>
+                        <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="password" class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1 ml-1">Secret Password</label>
+                    <div class="relative">
+                        <input type="password" id="password" class="gamer-input w-full bg-[#161616] border border-panel-border rounded-lg p-3 pl-10 text-white focus:outline-none" placeholder="••••••••" required>
+                        <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                </div>
+
+                <div id="confirm-wrapper" class="expandable-wrapper" data-state="collapsed">
+                    <div class="input-group pt-1">
+                        <label for="confirm-password" class="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1 ml-1">Confirm Password</label>
+                        <div class="relative">
+                            <input type="password" id="confirm-password" class="gamer-input w-full bg-[#161616] border border-panel-border rounded-lg p-3 pl-10 text-white focus:outline-none" placeholder="••••••••">
+                            <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="w-full btn-skew bg-game-yellow hover:bg-game-yellow-hover text-black font-extrabold text-lg py-3.5 rounded disabled:opacity-50 disabled:cursor-not-allowed mt-2 relative overflow-hidden z-10 transition-colors will-change-transform group">
+                    <div id="submit-text" class="tracking-widest uppercase relative z-10 pointer-events-none">Enter Panel</div>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

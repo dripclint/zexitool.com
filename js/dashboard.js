@@ -1,7 +1,7 @@
 /**
  * ZEXI TOOL - REAL-TIME LIVE APPLICATION LOGIC
  * Architecture: Firebase v10 Modular SDK (Live Mode)
- * Features: Direct Wallet Purchase, Live Status Dot, Ban Protection, Video Player
+ * Features: Direct Wallet Purchase, Live Status Dot, Ban Protection, Video Player, Telegram Alerts
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -21,6 +21,10 @@ const firebaseConfig = {
     appId: "1:961579533174:web:f59b6a7e1bf7616aed7057"
 };
 
+// 📢 CONFIGURATION
+const TELEGRAM_WORKER_URL = "https://lingering-water-7c0a.admin-zexitool.workers.dev";
+const SITE_NAME = "ZEXITOOL"; // ✅ Fixed Website Name
+
 const appInstance = initializeApp(firebaseConfig);
 const auth = getAuth(appInstance);
 const db = getFirestore(appInstance);
@@ -37,6 +41,20 @@ const STATE = {
     depositHistoryHtml: '',
     ordersHistoryHtml: ''
 };
+
+// --- TELEGRAM HELPER FUNCTION ---
+async function sendTelegramAlert(msg) {
+    try {
+        await fetch(TELEGRAM_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                message: msg,
+                site: SITE_NAME // Pass site name to worker
+            })
+        });
+    } catch (e) { console.error("Telegram Alert Error:", e); }
+}
 
 // Helper function to handle local timestamp sorting (including pending nulls)
 const sortByDateDesc = (a, b) => {
@@ -79,7 +97,6 @@ const UI = {
     switchDepositTab(method) {
         STATE.currentDepositTab = method;
         
-        // Robust tab switching that doesn't rely on exact HTML formatting
         document.querySelectorAll('.tab').forEach(t => {
             t.classList.remove('active');
             const onclickAttr = t.getAttribute('onclick') || '';
@@ -95,7 +112,7 @@ const UI = {
 
         if(qrImg && desc && lblUtr && inputUtr) {
             if (method === 'upi') {
-                qrImg.src = "https://i.ibb.co/DHsfsL3d/qr.png"; // ✅ fixed link
+                qrImg.src = "https://i.ibb.co/DHsfsL3d/qr.png"; 
                 desc.innerText = "Scan to pay via UPI";
                 lblUtr.innerText = "UTR / Transaction ID (12 Digits)";
                 inputUtr.placeholder = "Enter 12-digit UTR...";
@@ -132,11 +149,9 @@ const UI = {
             div.className = `price-option ${index === 0 ? 'selected' : ''}`;
             div.innerHTML = `<strong>${days} Days</strong>₹${price}`;
             
-            // Explicit functional mapping to prevent context loss
             div.onclick = () => UI.selectDuration(days, price, div); 
             pricingGrid.appendChild(div);
 
-            // Auto-select first option
             if(index === 0) UI.selectDuration(days, price, div); 
         });
 
@@ -185,12 +200,11 @@ const DataLayer = {
         }
     },
 
-        renderProducts() {
+    renderProducts() {
         const container = document.getElementById('product-list');
         if(!container) return;
         
         container.innerHTML = STATE.products.map(p => {
-            // --- CHANGED SECTION: Inline Video Player Logic ---
             const hasValidVideo = p.videoUrl && p.videoUrl !== '#' && p.videoUrl.trim() !== '';
             
             const mediaContent = hasValidVideo 
@@ -198,7 +212,6 @@ const DataLayer = {
                 : `<div style="width: 100%; height: 150px; background: #222; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 0.9rem;">
                        <i class="fa-solid fa-video-slash" style="margin-right: 8px;"></i> No preview available
                    </div>`;
-            // --------------------------------------------------
 
             return `
             <div class="product-card" style="background: var(--surface, #121212); border: 1px solid var(--border, #2a2a2a); border-radius: 8px; margin-bottom: 1rem; overflow: hidden;">
@@ -245,12 +258,17 @@ const DataLayer = {
                 status: 'pending',
                 createdAt: serverTimestamp()
             });
+
+            // ✅ TELEGRAM NOTIFICATION FOR DEPOSIT
+            const depositMsg = `💰 <b>Deposit Alert (${SITE_NAME})</b>\n\n👤 User: ${STATE.currentUser.email || 'Guest'}\n💵 Amount: ₹${amount}\n🔢 UTR/ID: <code>${utr}</code>\n🏦 Method: ${STATE.currentDepositTab.toUpperCase()}`;
+            sendTelegramAlert(depositMsg);
+
             UI.showToast('Deposit request sent to admin!', 'success');
             amountEl.value = '';
             utrEl.value = '';
             Router.navigate('history');
         } catch (error) {
-            UI.showToast('Database Error: Check Firebase Rules', 'danger');
+            UI.showToast('Database Error', 'danger');
         } finally {
             UI.setLoading('btn-submit-deposit', false, 'SUBMIT REQUEST');
         }
@@ -261,7 +279,7 @@ const DataLayer = {
         if (!STATE.selectedDuration) return UI.showToast('Error: Please select a duration.', 'danger');
         
         if (STATE.balance < STATE.selectedPrice) {
-            return UI.showToast('Insufficient wallet balance. Please deposit funds.', 'danger');
+            return UI.showToast('Insufficient wallet balance.', 'danger');
         }
 
         UI.setLoading('btn-confirm-purchase', true);
@@ -284,13 +302,16 @@ const DataLayer = {
                 key: null,
                 createdAt: serverTimestamp()
             });
+
+            // ✅ TELEGRAM NOTIFICATION FOR PURCHASE
+            const orderMsg = `🔑 <b>New Order (${SITE_NAME})</b>\n\n👤 User: ${STATE.currentUser.email || 'Guest'}\n📦 Item: ${STATE.selectedProduct.name}\n⏳ Time: ${STATE.selectedDuration} Days\n💰 Paid: ₹${STATE.selectedPrice}`;
+            sendTelegramAlert(orderMsg);
             
             UI.showToast('Order placed successfully!', 'success');
             UI.closePurchaseModal();
             Router.navigate('keys');
         } catch (error) {
-            console.error(error);
-            UI.showToast('Failed to place order. Check DB rules.', 'danger');
+            UI.showToast('Failed to place order.', 'danger');
         } finally {
             UI.setLoading('btn-confirm-purchase', false, 'PAY FROM WALLET');
         }
@@ -449,7 +470,7 @@ const Router = {
     }
 };
 
-// CRITICAL FIX: Expose global functions IMMEDIATELY so HTML onclick events don't fail before DOMContentLoaded fires.
+// CRITICAL FIX: Expose global functions
 window.app = {
     navigate: (pageId) => Router.navigate(pageId),
     switchDepositTab: (method) => UI.switchDepositTab(method),
@@ -472,7 +493,7 @@ window.app = {
             videoElement.src = url;
             videoElement.play().catch(e => console.log("Video Play Error:", e));
         } else {
-            UI.showToast('No preview video available', 'danger');
+            UI.showToast('No preview available', 'danger');
             return;
         }
         if(modal) modal.classList.add('active'); 
@@ -484,7 +505,6 @@ window.app = {
 function initApp() {
     UI.switchDepositTab('upi');
 
-    // Bind hardcoded UI buttons explicitly 
     const btnSubmitDeposit = document.getElementById('btn-submit-deposit');
     if (btnSubmitDeposit) btnSubmitDeposit.addEventListener('click', () => DataLayer.processDeposit());
     
@@ -494,69 +514,47 @@ function initApp() {
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.addEventListener('click', () => {
         signOut(auth).then(() => {
-            // Logout hone ke baad turant index.html par bhej dega
             window.location.href = 'index.html'; 
         });
     });
 
-    // --- NEW FIX: BIND ALL NAVIGATION BUTTONS ---
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            // Use closest() to ensure clicking inner icons still targets the parent wrapper
             const navElement = e.target.closest('.nav-item');
             if (navElement) {
                 const targetPage = navElement.getAttribute('data-target');
-                if (targetPage) {
-                    Router.navigate(targetPage);
-                }
+                if (targetPage) Router.navigate(targetPage);
             }
         });
     });
-     // ✅ NAVBAR FIX (NO MOVE, NO HIDE) - VISUAL VIEWPORT API
+
     const nav = document.querySelector('.bottom-nav');
     if (nav && window.visualViewport) {
         let baseHeight = window.visualViewport.height;
-
-        // Recalibrate base height on device rotation to prevent offset bugs
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => { baseHeight = window.visualViewport.height; }, 300);
-        });
-
         window.visualViewport.addEventListener('resize', () => {
             const currentHeight = window.visualViewport.height;
             const offset = baseHeight - currentHeight;
-
-            // If the viewport shrinks by more than 100px, it's the virtual keyboard
             if (offset > 100) {
-                // Translate the navbar exactly down by the keyboard height
                 nav.style.transform = `translateY(${offset}px)`;
             } else {
-                // Keyboard closed or native browser URL bar scrolled
                 nav.style.transform = 'translateY(0)';
-                // Recalibrate baseHeight to account for URL bar showing/hiding
                 baseHeight = currentHeight; 
             }
         });
     }
 
-
     onAuthStateChanged(auth, async (user) => {
         const dot = document.getElementById('login-status-dot');
         if (user) {
             if (STATE.currentUser && STATE.currentUser.uid === user.uid) return;
-            
             STATE.currentUser = user;
             const emailEl = document.getElementById('display-user-email');
             if(emailEl) emailEl.innerText = user.email || "Guest User";
-            
             if(dot) {
                 dot.style.background = '#2a9d8f'; 
                 dot.style.boxShadow = '0 0 8px #2a9d8f';
             }
-            
-            const authGuard = document.getElementById('auth-guard');
-            if(authGuard) authGuard.style.display = 'none';
-            
+            document.getElementById('auth-guard').style.display = 'none';
             DataLayer.fetchProducts();
             DataLayer.listenToUserData();
         } else {
